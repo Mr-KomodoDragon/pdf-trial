@@ -1,3 +1,8 @@
+/* Universal Box Sizing & Font Setup */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body, html {
   margin: 0;
   padding: 0;
@@ -5,21 +10,24 @@ body, html {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Flex Container for Centering */
 .lobby {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh; /* Use min-height for better flexibility */
   width: 100%;
   background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+  padding: 20px; /* Add padding to the container */
 }
 
+/* The Card Itself */
 .lobby-card {
   background: white;
   border-radius: 20px;
   padding: 30px;
-  width: 90%;
-  max-width: 400px;
+  width: 100%; /* Card will fill the padded area of .lobby */
+  max-width: 400px; /* Prevents the card from becoming too wide on desktops */
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   text-align: center;
 }
@@ -45,4 +53,23 @@ body, html {
 #viewer {
   width: 100%;
   height: 100vh;
+}
+
+/* Simplified Mobile Optimization */
+@media (max-width: 480px) {
+  .lobby-card {
+    padding: 25px 20px; /* Adjust padding for smaller screens */
+  }
+
+  .lobby-title {
+    font-size: 22px;
+  }
+
+  .lobby-position {
+    font-size: 18px;
+  }
+
+  .lobby-note {
+    font-size: 12px;
+  }
 }

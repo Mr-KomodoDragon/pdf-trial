@@ -1,6 +1,7 @@
 import { db, ref } from "./firebaseConfig.js";
 import { get, set, remove, onValue, off, push, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
 import { createWaitingRoom } from "./waitingRoom.js";
+import { createMultipleTabsUI } from "./sessionLimit.js";
 
 // Generate or retrieve a persistent user ID
 const userId = localStorage.getItem("userId") || "user-" + Math.random().toString(36).substr(2, 9);
@@ -16,7 +17,10 @@ export async function joinSession(onViewerReady) {
   const sessionSnapshot = await get(sessionRef);
 
   if (sessionSnapshot.exists()) {
-    // Another tab is already open for this user (handled later with sessionLimit.js)
+    // Another tab is already open for this user
+    const root = document.getElementById("root");
+    root.innerHTML = "";
+    root.appendChild(createMultipleTabsUI());
     return;
   }
 
@@ -74,7 +78,10 @@ function setupQueueListeners(myQueueKey, onViewerReady) {
 
   const sessionListener = onValue(ref(db, `activeSessions/${userId}`), (snap) => {
     if (!snap.exists()) {
-      // Session was removed (e.g., tab closed)
+      // Session was removed (e.g., tab closed), show message
+      const root = document.getElementById("root");
+      root.innerHTML = "";
+      root.appendChild(createMultipleTabsUI());
       off(queueRef, queueListener);
       off(lockRef, lockListener);
     }
