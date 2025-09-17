@@ -16,7 +16,8 @@ export async function joinSession(onViewerReady) {
   const sessionSnapshot = await get(sessionRef);
 
   if (sessionSnapshot.exists()) {
-    return; // Handle multiple tabs later
+    // Another tab is already open for this user (handled later with sessionLimit.js)
+    return;
   }
 
   // Register the new session
@@ -73,11 +74,13 @@ function setupQueueListeners(myQueueKey, onViewerReady) {
 
   const sessionListener = onValue(ref(db, `activeSessions/${userId}`), (snap) => {
     if (!snap.exists()) {
+      // Session was removed (e.g., tab closed)
       off(queueRef, queueListener);
       off(lockRef, lockListener);
     }
   });
 
+  // Cleanup listeners on page unload
   window.addEventListener("unload", () => {
     off(queueRef, queueListener);
     off(lockRef, lockListener);
