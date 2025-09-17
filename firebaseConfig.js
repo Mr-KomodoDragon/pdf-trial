@@ -1,8 +1,8 @@
-// Import Firebase dari CDN
+// Firebase Config file
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
 import { getDatabase, ref } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
 
-// Firebase credentials kamu
+// Your Firebase credentials
 const firebaseConfig = {
   apiKey: "AIzaSyBBm626ggNonKDUbYkhWG44nro2As3ZirM",
   authDomain: "pdf-trial-3019f.firebaseapp.com",
@@ -17,5 +17,5 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Export db dan ref
+// Export db + ref
 export { db, ref };

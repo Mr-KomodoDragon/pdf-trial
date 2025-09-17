@@ -1,9 +1,8 @@
 import { db, ref } from "./firebaseConfig.js";
 import { get, set, remove, onValue, off, push, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
 import { createWaitingRoom } from "./waitingRoom.js";
-import { createMultipleTabsUI } from "./sessionLimit.js"; // Ini nanti kita tambah kalau perlu
 
-// Generate user ID
+// Generate or retrieve a persistent user ID
 const userId = localStorage.getItem("userId") || "user-" + Math.random().toString(36).substr(2, 9);
 if (!localStorage.getItem("userId")) {
   localStorage.setItem("userId", userId);
@@ -17,26 +16,23 @@ export async function joinSession(onViewerReady) {
   const sessionSnapshot = await get(sessionRef);
 
   if (sessionSnapshot.exists()) {
-    // Tab lain udah buka
-    const root = document.getElementById("root");
-    root.innerHTML = "";
-    root.appendChild(createMultipleTabsUI()); // Ini nanti kita tambah
+    // Another tab is already open for this user (handled later with sessionLimit.js)
     return;
   }
 
-  // Daftarin session baru
+  // Register the new session
   await set(sessionRef, { time: Date.now(), tabId: userId + "-" + Date.now() });
-  onDisconnect(sessionRef).remove();
+  await onDisconnect(sessionRef).remove();
 
   const lockSnapshot = await get(lockRef);
   if (!lockSnapshot.exists()) {
     await set(lockRef, { user: userId, time: Date.now() });
-    onDisconnect(lockRef).remove();
+    await onDisconnect(lockRef).remove();
     onViewerReady();
   } else {
     const newQueueItem = push(queueRef);
     await set(newQueueItem, { user: userId, time: Date.now() });
-    onDisconnect(newQueueItem).remove();
+    await onDisconnect(newQueueItem).remove();
     setupQueueListeners(newQueueItem.key, onViewerReady);
   }
 }
@@ -45,7 +41,7 @@ function setupQueueListeners(myQueueKey, onViewerReady) {
   const queueListener = onValue(queueRef, (snap) => {
     const root = document.getElementById("root");
     root.innerHTML = "";
-    
+
     if (snap.exists()) {
       const entries = Object.entries(snap.val()).sort((a, b) => a[1].time - b[1].time);
       const totalUsers = entries.length;
@@ -67,7 +63,7 @@ function setupQueueListeners(myQueueKey, onViewerReady) {
           await onDisconnect(myQueueRef).cancel();
           await remove(myQueueRef);
           await set(lockRef, { user: userId, time: Date.now() });
-          onDisconnect(lockRef).remove();
+          await onDisconnect(lockRef).remove();
           off(queueRef, queueListener);
           off(lockRef, lockListener);
           onViewerReady();
@@ -78,15 +74,13 @@ function setupQueueListeners(myQueueKey, onViewerReady) {
 
   const sessionListener = onValue(ref(db, `activeSessions/${userId}`), (snap) => {
     if (!snap.exists()) {
-      const root = document.getElementById("root");
-      root.innerHTML = "";
-      root.appendChild(createMultipleTabsUI());
+      // Session was removed (e.g., tab closed)
       off(queueRef, queueListener);
       off(lockRef, lockListener);
     }
   });
 
-  // Cleanup
+  // Cleanup listeners on page unload
   window.addEventListener("unload", () => {
     off(queueRef, queueListener);
     off(lockRef, lockListener);
