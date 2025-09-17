@@ -22,9 +22,8 @@ function renderViewer() {
       instance.UI.Feature.FilePicker,
       instance.UI.Feature.ContentEdit
     ]);
-    console.log("WebViewer initialized successfully");
   }).catch(error => {
-    console.error("Failed to initialize WebViewer:", error);
+    // Handle WebViewer initialization errors silently
   });
 }
 
