@@ -9,3 +9,40 @@ body, html {
   width: 100%;
   height: 100vh;
 }
+
+.lobby {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+}
+
+.lobby-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.lobby-title {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.lobby-position {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.lobby-note {
+  font-size: 14px;
+  color: #777;
+}

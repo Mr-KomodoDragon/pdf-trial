@@ -1,3 +1,5 @@
+import { joinSession } from "./sessionManager.js";
+
 function initializeViewer() {
   const viewerEl = document.createElement("div");
   viewerEl.id = "viewer";
@@ -26,5 +28,9 @@ function renderViewer() {
   });
 }
 
-// Run the app
-renderViewer();
+// Mulai app dengan joinSession
+function init() {
+  joinSession(renderViewer);
+}
+
+init();
