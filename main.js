@@ -1,13 +1,11 @@
-function getPdfUrl() {
-  const params = new URLSearchParams(window.location.search);
-  let pdfUrl = params.get("file"); // ?file=...
+import { joinSession } from "./sessionManager.js";
 
-  if (pdfUrl && pdfUrl.startsWith("/")) {
-    // tambahin domain Joget biar jadi absolute URL
-    const base = window.location.origin; 
-    pdfUrl = base + pdfUrl;
-  }
-  return pdfUrl;
+function initializeViewer() {
+  const viewerEl = document.createElement("div");
+  viewerEl.id = "viewer";
+  viewerEl.style.width = "100%";
+  viewerEl.style.height = "100vh";
+  return viewerEl;
 }
 
 function renderViewer() {
@@ -15,21 +13,25 @@ function renderViewer() {
   root.innerHTML = "";
   root.appendChild(initializeViewer());
 
-  const pdfUrl = getPdfUrl();
-
   window.WebViewer({
     path: "WebViewer/lib",
     licenseKey: "demo:1757573550364:6049c1130300000000227036cce126e7ba3206da87acd1c4e561ea9493",
-    ui: window.innerWidth < 768 ? "beta" : "default",
-    initialDoc: pdfUrl || undefined
+    ui: window.innerWidth < 768 ? "beta" : "default"
   }, document.getElementById("viewer")).then(instance => {
     instance.UI.enableFeatures([
       instance.UI.Feature.FilePicker,
       instance.UI.Feature.ContentEdit
     ]);
-
-    console.log("✅ PDF loaded:", pdfUrl);
+    console.log("WebViewer initialized successfully");
   }).catch(error => {
-    console.error("❌ Failed to initialize WebViewer:", error);
+    console.error("Failed to initialize WebViewer:", error);
   });
 }
+
+// This function will start the entire application
+function init() {
+  joinSession(renderViewer);
+}
+
+// Run the app
+init();
