@@ -6,12 +6,12 @@
 body, html {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100vh; /* Changed to min-height for full viewport coverage */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 #root {
-  height: 100%;
+  min-height: 100vh; /* Ensure root covers full viewport */
 }
 
 /* Flex Container for Centering */
@@ -19,10 +19,10 @@ body, html {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  min-height: 100vh; /* Changed to min-height for better viewport handling */
   width: 100%;
   background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
-  padding: 20px; /* Add padding to the container */
+  padding: 20px; /* Consistent padding */
 }
 
 /* The Card Itself */
@@ -30,9 +30,9 @@ body, html {
   background: white;
   border-radius: 20px;
   padding: 30px;
-  width: 100%; /* Card will fill the padded area of .lobby */
-  max-width: 400px; /* Prevents the card from becoming too wide on desktops */
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* Simplified shadow for performance */
   text-align: center;
 }
 
@@ -62,7 +62,8 @@ body, html {
 /* Simplified Mobile Optimization */
 @media (max-width: 480px) {
   .lobby-card {
-    padding: 25px 20px; /* Adjust padding for smaller screens */
+    padding: 25px 20px;
+    max-width: 300px; /* Slightly smaller max-width for mobile */
   }
 
   .lobby-title {
