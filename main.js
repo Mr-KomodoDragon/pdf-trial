@@ -9,6 +9,7 @@ function initializeViewer() {
 }
 
 function renderViewer(pdfUrl) {
+  // Jika tidak ada pdfUrl, fallback ke kosong atau error
   if (!pdfUrl) {
     console.error("No PDF URL provided");
     return;
@@ -18,35 +19,36 @@ function renderViewer(pdfUrl) {
   root.innerHTML = "";
   root.appendChild(initializeViewer());
 
-  // Fetch PDF sebagai blob untuk mengatasi CORS
-  fetch(pdfUrl)
-    .then(response => {
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.blob();
-    })
-    .then(blob => {
-      const url = URL.createObjectURL(blob);
-      const options = {
-        path: "WebViewer/lib",
-        licenseKey: "demo:1757573550364:6049c1130300000000227036cce126e7ba3206da87acd1c4e561ea9493",
-        initialDoc: url,  // Gunakan blob URL
-        extension: 'pdf',
-        ui: window.innerWidth < 768 ? "beta" : "default"
-      };
+  const options = {
+    path: "WebViewer/lib",
+    licenseKey: "demo:1757573550364:6049c1130300000000227036cce126e7ba3206da87acd1c4e561ea9493",
+    initialDoc: pdfUrl,  // Muat PDF dari URL secara otomatis
+    extension: 'pdf',    // Pastikan dikenali sebagai PDF jika URL extensionless
+    ui: window.innerWidth < 768 ? "beta" : "default"
+  };
 
-      window.WebViewer(options, document.getElementById("viewer")).then(instance => {
-        instance.UI.enableFeatures([
-          instance.UI.Feature.FilePicker,
-          instance.UI.Feature.ContentEdit
-        ]);
-        console.log("WebViewer initialized with PDF:", pdfUrl);
-      }).catch(error => {
-        console.error("Failed to initialize WebViewer:", error);
+  window.WebViewer(options, document.getElementById("viewer")).then(instance => {
+    instance.UI.enableFeatures([
+      instance.UI.Feature.FilePicker,
+      instance.UI.Feature.ContentEdit
+    ]);
+
+    // Opsional: Event listener untuk simpan setelah edit
+    instance.UI.iframeWindow.addEventListener('updateViewerAnnotations', () => {
+      // Contoh: Export PDF setelah ada perubahan
+      instance.Core.documentViewer.getDocument().getFileData().then(data => {
+        const arr = new Uint8Array(data);
+        const blob = new Blob([arr], { type: 'application/pdf' });
+        // Kirim blob ke Joget via fetch, misalnya:
+        // fetch('/joget/update-workorder', { method: 'POST', body: formDataWithBlob })
+        console.log("PDF edited, ready to send back");
       });
-    })
-    .catch(error => {
-      console.error("Failed to fetch PDF:", error);
     });
+
+    console.log("WebViewer initialized with PDF:", pdfUrl);
+  }).catch(error => {
+    console.error("Failed to initialize WebViewer:", error);
+  });
 }
 
 // Modifikasi init: joinSession sekarang pass pdfUrl ke renderViewer
