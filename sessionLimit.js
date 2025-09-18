@@ -1,10 +1,4 @@
 export function createMultipleTabsUI() {
-  // Load the enhanced CSS file
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "multiple-tabs.css";
-  document.head.appendChild(link);
-
   const lobby = document.createElement("div");
   const card = document.createElement("div");
 
