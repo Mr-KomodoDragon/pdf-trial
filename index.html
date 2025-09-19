@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Viewer</title>
+  <title>PDF Viewer with Appwrite</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="multiple-tabs.css"> <script src="WebViewer/lib/webviewer.min.js" type="module"></script>
+  <link rel="stylesheet" href="multiple-tabs.css">
+  <script src="WebViewer/lib/webviewer.min.js" type="module"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js"></script>
+  <!-- 1. Include the Appwrite SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0/dist/browser/appwrite.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
+  <!-- 2. Load the main script -->
   <script type="module" src="main.js"></script>
 </body>
 </html>
