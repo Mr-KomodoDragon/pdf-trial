@@ -103,10 +103,13 @@ async function loadPdfFromJoget(instance, pdfName) {
         }
     } catch (error) {
         console.error("All proxies failed:", error);
+        // Throw a more specific error to be caught by the outer try-catch block
+        throw new Error(`All proxies failed to fetch ${pdfName}.`);
     }
 
     if (!pdfBlob || pdfBlob.size === 0) {
-      throw new Error(`All proxies failed to fetch ${pdfName}.`);
+      // This check is slightly redundant now but kept as a safeguard
+      throw new Error(`Could not retrieve PDF blob from any proxy.`);
     }
 
     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
@@ -150,7 +153,7 @@ async function loadPdfFromJoget(instance, pdfName) {
             const doc = instance.Core.documentViewer.getDocument();
             const xfdfString = await instance.Core.annotationManager.exportAnnotations();
             const data = await doc.getFileData({ xfdfString });
-            const arr = new Uint8Array(data);
+            const arr = new Uint8_Array(data);
             const blob = new Blob([arr], { type: 'application/pdf' });
             
             window.removeEventListener('beforeunload', cleanupTempFile);
