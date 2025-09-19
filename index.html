@@ -3,27 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Viewer with Appwrite</title>
+  <title>PDF Viewer</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="multiple-tabs.css">
   <script src="WebViewer/lib/webviewer.min.js" type="module"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js"></script>
-  <!-- Add the Appwrite SDK - Load before modules -->
-  <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0/dist/browser/appwrite.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
-  <!-- Load main.js after Appwrite SDK is ready -->
-  <script>
-    // Wait for Appwrite to load, then load main module
-    window.addEventListener('load', function() {
-      if (window.Appwrite) {
-        import('./main.js');
-      } else {
-        console.error('Appwrite SDK failed to load');
-      }
-    });
-  </script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
