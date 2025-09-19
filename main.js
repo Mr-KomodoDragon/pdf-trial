@@ -72,7 +72,6 @@ async function loadPdfFromJoget(instance, pdfName) {
     const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
     const corsProxies = [
       `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`
     ];
 
     try {
