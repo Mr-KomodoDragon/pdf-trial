@@ -48,8 +48,22 @@ async function renderViewer() {
 
 async function loadPdfFromJoget(instance, pdfName) {
   try {
-    // Import Appwrite modules dynamically when needed
-    const { ID, storage } = await import("./appwriteConfig.js");
+    // Check if Appwrite is available
+    if (!window.Appwrite) {
+      throw new Error('Appwrite SDK not loaded');
+    }
+    
+    // Use Appwrite from window object (since it's loaded as global)
+    const { Client, ID, Storage } = window.Appwrite;
+    
+    // Initialize Appwrite client
+    const client = new Client();
+    client
+      .setEndpoint('https://syd.cloud.appwrite.io/v1')
+      .setProject('68cbce490037c7926659')
+      .setKey('standard_15ad54ac81529df9847b63e88b0ac43908c6ef6f8c30f94012ddf92855aae21322344c5c7a847d9dc87aeb9388f530950f3ef03f2c76e53eb99699d06ce949cd32354d907ed7dbd5f74289539d02bf62287467df585674196ac202c790d6b05c9574368b41104f381d1aaecce279a6c16b9cd73dfce671f3e9b9f68049b2ff80');
+    
+    const storage = new Storage(client);
     const BUCKET_ID = '68cbce7300119ab31e91';
     
     console.log(`Fetching PDF: ${pdfName}`);
