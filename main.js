@@ -43,6 +43,32 @@ function renderViewer() {
 }
 
 async function loadPdfFromJoget(instance, pdfName) {
+  let uploadedFileId = null; // Menyimpan ID file yang diupload untuk dihapus nanti
+  
+  // Initialize Appwrite
+  const { Client, Storage, ID } = window.AppwriteWeb;
+  const client = new Client()
+    .setEndpoint('https://syd.cloud.appwrite.io/v1')
+    .setProject('68cbce490037c7926659');
+  const storage = new Storage(client);
+  const BUCKET_ID = '68cbce7300119ab31e91';
+  
+  // --- Fungsi untuk membersihkan file sementara ---
+  const cleanupTempFile = async () => {
+    if (uploadedFileId) {
+      try {
+        await storage.deleteFile(BUCKET_ID, uploadedFileId);
+        console.log("Temporary file cleaned up:", uploadedFileId);
+        uploadedFileId = null; // Kosongkan ID setelah dihapus
+      } catch (error) {
+        console.error("Failed to clean up file:", error);
+      }
+    }
+  };
+  
+  // --- Menambahkan listener untuk menutup tab/jendela ---
+  window.addEventListener('beforeunload', cleanupTempFile);
+  
   try {
     // Wait for Appwrite to be available
     let attempts = 0;
@@ -57,33 +83,18 @@ async function loadPdfFromJoget(instance, pdfName) {
     
     console.log(`Loading PDF: ${pdfName}`);
     
-    // Initialize Appwrite
-    const { Client, Storage, ID } = window.AppwriteWeb;
-    const client = new Client()
-      .setEndpoint('https://syd.cloud.appwrite.io/v1')
-      .setProject('68cbce490037c7926659');
-    
-    const storage = new Storage(client);
-    const BUCKET_ID = '68cbce7300119ab31e91';
-    
     let pdfBlob = null;
     
-    // Use CORS proxies to fetch the PDF
     const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
     const corsProxies = [
       `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
-      // Add other reliable proxies here
       `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`
     ];
 
     try {
         console.log("Trying all proxies in parallel...");
-        // Create an array of fetch promises
         const fetchPromises = corsProxies.map(proxy => fetch(proxy));
-
-        // Wait for the first proxy to successfully respond
         const response = await Promise.any(fetchPromises);
-
         if (response.ok) {
             pdfBlob = await response.blob();
             console.log(`Fastest proxy successful! Blob size: ${pdfBlob.size}`);
@@ -100,22 +111,37 @@ async function loadPdfFromJoget(instance, pdfName) {
 
     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-    // Upload to Appwrite Storage
     console.log('Uploading to Appwrite...');
     const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), pdfFile);
-    console.log('Upload successful:', uploadedFile.$id);
+    uploadedFileId = uploadedFile.$id;
+    console.log('Upload successful:', uploadedFileId);
     
-    // Get Appwrite file view URL
-    const fileViewUrl = storage.getFileView(BUCKET_ID, uploadedFile.$id);
+    const fileViewUrl = storage.getFileView(BUCKET_ID, uploadedFileId);
     console.log('Appwrite file URL:', fileViewUrl.href);
+
+    // --- PERBAIKAN: Menangani loading spinner yang macet ---
+    let renderTimeout;
+    const onDocumentLoaded = () => {
+        clearTimeout(renderTimeout); // Batalkan timeout jika render berhasil
+        console.log("Proses render dokumen selesai. Menutup loading spinner secara manual.");
+        instance.UI.closeElements(['loadingModal']); // Paksa tutup loading spinner
+        instance.Core.documentViewer.removeEventListener('documentLoaded', onDocumentLoaded);
+    };
+    instance.Core.documentViewer.addEventListener('documentLoaded', onDocumentLoaded);
     
-    // Load PDF from Appwrite into WebViewer
+    console.log(`Memulai memuat dokumen ke WebViewer...`);
     await instance.UI.loadDocument(fileViewUrl.href, { filename: pdfName });
-    console.log(`Successfully loaded ${pdfName} from Appwrite`);
+    console.log(`Panggilan loadDocument selesai. Menunggu render...`);
     
+    // Atur timeout untuk mencegah UI terlihat macet
+    renderTimeout = setTimeout(() => {
+        console.warn("Render PDF memakan waktu lama, menutup loading spinner secara paksa.");
+        instance.UI.closeElements(['loadingModal']);
+        instance.Core.documentViewer.removeEventListener('documentLoaded', onDocumentLoaded);
+    }, 15000); // Tunggu 15 detik
+
     // Add save and cancel buttons
     instance.UI.setHeaderItems(header => {
-      // Save button
       header.push({
         type: 'actionButton',
         img: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg>',
@@ -127,7 +153,8 @@ async function loadPdfFromJoget(instance, pdfName) {
             const arr = new Uint8Array(data);
             const blob = new Blob([arr], { type: 'application/pdf' });
             
-            // Download the edited PDF
+            window.removeEventListener('beforeunload', cleanupTempFile);
+
             const downloadUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
@@ -138,6 +165,8 @@ async function loadPdfFromJoget(instance, pdfName) {
             URL.revokeObjectURL(downloadUrl);
             
             alert("PDF saved successfully!");
+            await cleanupTempFile(); // Bersihkan file setelah berhasil di-download
+            
           } catch (error) {
             console.error('Save error:', error);
             alert("Error saving PDF. Please try again.");
@@ -145,20 +174,14 @@ async function loadPdfFromJoget(instance, pdfName) {
         }
       });
       
-      // Cancel button
       header.push({
         type: 'actionButton',
         img: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636z" fill="currentColor"/></svg>',
         onClick: async () => {
           const confirmClose = confirm("Close editor? Any unsaved changes will be lost.");
           if (confirmClose) {
-            // Clean up temp file from Appwrite
-            try {
-              await storage.deleteFile(BUCKET_ID, uploadedFile.$id);
-              console.log("Temporary file cleaned up");
-            } catch (error) {
-              console.error("Cleanup error:", error);
-            }
+            window.removeEventListener('beforeunload', cleanupTempFile);
+            await cleanupTempFile();
             window.close();
           }
         }
@@ -166,15 +189,15 @@ async function loadPdfFromJoget(instance, pdfName) {
     });
 
   } catch (error) {
+    window.removeEventListener('beforeunload', cleanupTempFile);
     console.error("Error loading PDF from Joget:", error);
     alert(`Error loading "${pdfName}": ${error.message}. The PDF editor will remain open for you to load files manually.`);
   }
 }
 
-// This function will start the entire application
 function init() {
   joinSession(renderViewer);
 }
 
-// Run the app
 init();
+
