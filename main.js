@@ -72,16 +72,12 @@ async function loadPdfFromJoget(instance, pdfName) {
     const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
     const corsProxies = [
       `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
-      // Add other reliable proxies here
       `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`
     ];
 
     try {
         console.log("Trying all proxies in parallel...");
-        // Create an array of fetch promises
         const fetchPromises = corsProxies.map(proxy => fetch(proxy));
-
-        // Wait for the first proxy to successfully respond
         const response = await Promise.any(fetchPromises);
 
         if (response.ok) {
@@ -92,10 +88,11 @@ async function loadPdfFromJoget(instance, pdfName) {
         }
     } catch (error) {
         console.error("All proxies failed:", error);
+        throw new Error(`All proxies failed to fetch ${pdfName}.`);
     }
 
     if (!pdfBlob || pdfBlob.size === 0) {
-      throw new Error(`All proxies failed to fetch ${pdfName}.`);
+      throw new Error(`Could not retrieve PDF blob from any proxy.`);
     }
 
     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
@@ -178,3 +175,4 @@ function init() {
 
 // Run the app
 init();
+
