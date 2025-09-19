@@ -45,7 +45,7 @@ function renderViewer() {
 
 async function loadPdfFromJoget(instance, pdfName) {
   try {
-    // Wait a bit to ensure Appwrite SDK is loaded
+    // Wait for Appwrite
     await new Promise(resolve => setTimeout(resolve, 500));
     
     if (!window.Appwrite) {
@@ -65,64 +65,111 @@ async function loadPdfFromJoget(instance, pdfName) {
     const storage = new Storage(client);
     const BUCKET_ID = '68cbce7300119ab31e91';
     
-    // 1. Fetch PDF from Joget
+    // Try different approaches that might bypass CORS
     const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
-    console.log(`Fetching from: ${pdfUrl}`);
+    console.log(`Trying to fetch: ${pdfUrl}`);
     
-    let response;
-    let corsProxies = [
-      `https://cors-anywhere.herokuapp.com/${pdfUrl}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`,
-      `https://proxy.cors.sh/${pdfUrl}`
+    let pdfBlob = null;
+    
+    // Method 1: Try fetch with different modes
+    const fetchMethods = [
+      // Standard fetch
+      () => fetch(pdfUrl),
+      // No-cors mode (might work but gives opaque response)
+      () => fetch(pdfUrl, { mode: 'no-cors' }),
+      // With credentials
+      () => fetch(pdfUrl, { mode: 'cors', credentials: 'omit' }),
+      // XMLHttpRequest approach
+      () => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', pdfUrl, true);
+        xhr.responseType = 'blob';
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve({ ok: true, blob: () => Promise.resolve(xhr.response) });
+          } else {
+            reject(new Error(`XHR failed: ${xhr.status}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('XHR error'));
+        xhr.send();
+      })
     ];
     
-    // Try direct fetch first, then proxies
-    try {
-      response = await fetch(pdfUrl);
-      if (!response.ok) throw new Error('Direct fetch failed');
-      console.log('Direct fetch successful');
-    } catch (error) {
-      console.log('Direct fetch failed, trying CORS proxies...');
+    // Try each method
+    for (let i = 0; i < fetchMethods.length; i++) {
+      try {
+        console.log(`Trying method ${i + 1}...`);
+        const response = await fetchMethods[i]();
+        
+        if (response.ok || response.status === 0) { // status 0 might be no-cors
+          pdfBlob = await response.blob();
+          if (pdfBlob && pdfBlob.size > 0) {
+            console.log(`Method ${i + 1} successful! Blob size: ${pdfBlob.size}`);
+            break;
+          }
+        }
+      } catch (error) {
+        console.log(`Method ${i + 1} failed:`, error.message);
+      }
+    }
+    
+    // If direct methods fail, try CORS proxies
+    if (!pdfBlob || pdfBlob.size === 0) {
+      console.log('Direct methods failed, trying CORS proxies...');
+      
+      const corsProxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
+        `https://cors-anywhere.herokuapp.com/${pdfUrl}`,
+        `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`,
+        // Try a different approach - some proxies work better with specific headers
+        () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(pdfUrl)}`)
+      ];
       
       for (let i = 0; i < corsProxies.length; i++) {
         try {
-          console.log(`Trying proxy ${i + 1}`);
-          response = await fetch(corsProxies[i]);
+          console.log(`Trying proxy ${i + 1}...`);
+          const proxyUrl = typeof corsProxies[i] === 'string' ? corsProxies[i] : null;
+          const response = proxyUrl ? await fetch(proxyUrl) : await corsProxies[i]();
+          
           if (response.ok) {
-            console.log(`Proxy ${i + 1} successful!`);
-            break;
+            pdfBlob = await response.blob();
+            if (pdfBlob && pdfBlob.size > 0) {
+              console.log(`Proxy ${i + 1} successful! Blob size: ${pdfBlob.size}`);
+              break;
+            }
           }
-        } catch (proxyError) {
-          console.log(`Proxy ${i + 1} failed`);
-          if (i === corsProxies.length - 1) {
-            throw new Error('All fetch methods failed');
-          }
+        } catch (error) {
+          console.log(`Proxy ${i + 1} failed:`, error.message);
         }
       }
     }
     
-    if (!response || !response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response ? response.statusText : 'No response'}`);
+    if (!pdfBlob || pdfBlob.size === 0) {
+      throw new Error(`All methods failed to fetch ${pdfName}. The file might be protected or require authentication.`);
     }
-
-    const pdfBlob = await response.blob();
+    
+    // Verify it's actually a PDF
+    if (!pdfBlob.type.includes('pdf') && pdfBlob.type !== 'application/octet-stream') {
+      console.warn('Blob type:', pdfBlob.type, '- might not be a PDF');
+    }
+    
     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-    // 2. Upload to Appwrite Storage
+    // Upload to Appwrite Storage
     console.log('Uploading to Appwrite...');
     const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), pdfFile);
     console.log('Upload successful:', uploadedFile.$id);
     
-    // 3. Get Appwrite file view URL
+    // Get Appwrite file view URL
     const fileViewUrl = storage.getFileView(BUCKET_ID, uploadedFile.$id);
     console.log('Appwrite file URL:', fileViewUrl.href);
     
-    // 4. Load PDF from Appwrite into WebViewer
+    // Load PDF from Appwrite into WebViewer
     await instance.UI.loadDocument(fileViewUrl.href, { filename: pdfName });
     console.log(`Successfully loaded ${pdfName} from Appwrite`);
     
-    // 5. Add save and cancel buttons
+    // Add save and cancel buttons
     instance.UI.setHeaderItems(header => {
       // Save button
       header.push({
