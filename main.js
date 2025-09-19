@@ -34,7 +34,6 @@ function renderViewer() {
     const pdfName = getUrlParameter('pdf');
     if (pdfName) {
       console.log(`PDF parameter detected: ${pdfName}`);
-      // Simple approach - just try to load the PDF directly
       await loadPdfFromJoget(instance, pdfName);
     }
     
@@ -67,44 +66,38 @@ async function loadPdfFromJoget(instance, pdfName) {
     const storage = new Storage(client);
     const BUCKET_ID = '68cbce7300119ab31e91';
     
-    const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
-    console.log(`Fetching PDF via CORS proxy: ${pdfUrl}`);
-    
     let pdfBlob = null;
     
     // Use CORS proxies to fetch the PDF
+    const pdfUrl = `https://expense.pratesis.com/jw/web/app/workOrder/resources/${pdfName}`;
     const corsProxies = [
       `https://api.allorigins.win/raw?url=${encodeURIComponent(pdfUrl)}`,
-      `https://cors-anywhere.herokuapp.com/${pdfUrl}`,
+      // Add other reliable proxies here
       `https://corsproxy.io/?${encodeURIComponent(pdfUrl)}`
     ];
-    
-    for (let i = 0; i < corsProxies.length; i++) {
-      try {
-        console.log(`Trying proxy ${i + 1}...`);
-        const response = await fetch(corsProxies[i]);
-        
+
+    try {
+        console.log("Trying all proxies in parallel...");
+        // Create an array of fetch promises
+        const fetchPromises = corsProxies.map(proxy => fetch(proxy));
+
+        // Wait for the first proxy to successfully respond
+        const response = await Promise.any(fetchPromises);
+
         if (response.ok) {
-          pdfBlob = await response.blob();
-          if (pdfBlob && pdfBlob.size > 0) {
-            console.log(`Proxy ${i + 1} successful! Blob size: ${pdfBlob.size}`);
-            break; // Exit the loop on success
-          }
+            pdfBlob = await response.blob();
+            console.log(`Fastest proxy successful! Blob size: ${pdfBlob.size}`);
+        } else {
+             throw new Error(`Fastest proxy failed with status: ${response.status}`);
         }
-      } catch (error) {
-        console.log(`Proxy ${i + 1} failed:`, error.message);
-      }
+    } catch (error) {
+        console.error("All proxies failed:", error);
     }
-    
+
     if (!pdfBlob || pdfBlob.size === 0) {
-      throw new Error(`All proxies failed to fetch ${pdfName}. The file might be protected or the proxies may be down.`);
+      throw new Error(`All proxies failed to fetch ${pdfName}.`);
     }
-    
-    // Verify it's a PDF
-    if (!pdfBlob.type.includes('pdf') && pdfBlob.type !== 'application/octet-stream') {
-      console.warn('Blob type:', pdfBlob.type, '- might not be a PDF');
-    }
-    
+
     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
     // Upload to Appwrite Storage
