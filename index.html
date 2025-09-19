@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDF Viewer</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="multiple-tabs.css">
   <script src="WebViewer/lib/webviewer.min.js" type="module"></script>
+
+  <!-- Firebase -->
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js"></script>
-  <!-- Load Appwrite Web SDK - Use ES modules approach -->
+
+  <!-- Appwrite Web SDK -->
   <script type="module">
     import { Client, Storage, ID } from 'https://cdn.skypack.dev/appwrite';
     window.AppwriteWeb = { Client, Storage, ID };
@@ -17,6 +20,10 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- Order matters: reader + uploader before main -->
+  <script type="module" src="reader.js"></script>
+  <script type="module" src="uploader.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>
