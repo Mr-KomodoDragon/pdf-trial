@@ -6,8 +6,6 @@
   <title>PDF Viewer</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="multiple-tabs.css">
-
-  <!-- WebViewer -->
   <script src="WebViewer/lib/webviewer.min.js" type="module"></script>
 
   <!-- Firebase -->
@@ -23,7 +21,7 @@
 <body>
   <div id="root"></div>
 
-  <!-- Order matters -->
+  <!-- Order matters: reader + uploader before main -->
   <script type="module" src="reader.js"></script>
   <script type="module" src="uploader.js"></script>
   <script type="module" src="main.js"></script>
